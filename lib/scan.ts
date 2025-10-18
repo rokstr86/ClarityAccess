@@ -38,8 +38,13 @@ export async function runAccessibilityScan(url: string): Promise<ScanResult> {
       resultTypes?: string[];
       reporter?: string;
     }
+    type AxeResult = {
+      violations: any[];
+      passes?: any[];
+      incomplete?: any[];
+    };
     interface AxeWindow extends Window {
-      axe: { run: (doc: Document, opts?: AxeRunOptions) => Promise<any> };
+      axe: { run: (doc: Document, opts?: AxeRunOptions) => Promise<AxeResult> };
     }
     const w = window as unknown as AxeWindow;
     const r = await w.axe.run(document, {
