@@ -39,9 +39,9 @@ export async function runAccessibilityScan(url: string): Promise<ScanResult> {
       reporter?: string;
     }
     type AxeResult = {
-      violations: any[];
-      passes?: any[];
-      incomplete?: any[];
+      violations: AxeViolation[];
+      passes?: AxeViolation[];
+      incomplete?: AxeViolation[];
     };
     interface AxeWindow extends Window {
       axe: { run: (doc: Document, opts?: AxeRunOptions) => Promise<AxeResult> };
