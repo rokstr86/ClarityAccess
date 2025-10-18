@@ -26,24 +26,29 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
 
   const handleScan = async () => {
-    if (!url.trim().startsWith("http")) {
-      setError("Please enter a valid URL starting with http or https.");
+  if (!/^https?:\/\//i.test(url)) {
+    setError("Please enter a valid URL starting with http or https.");
+    return;
+  }
+  setError(null); setLoading(true); setResult(null);
+  try {
+    const res = await fetch("/api/scan?url=" + encodeURIComponent(url));
+    const text = await res.text();
+    let json: any = null;
+    try { json = text ? JSON.parse(text) : null; } catch { /* not json */ }
+
+    if (!res.ok) {
+      setError(json?.error || text || `Request failed (${res.status})`);
       return;
     }
-    setError(null);
-    setLoading(true);
-    setResult(null);
-    try {
-      const res = await fetch("/api/scan?url=" + encodeURIComponent(url));
-      const data = (await res.json()) as ScanResult;
-      setResult(data);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setResult(json);
+  } catch (err: any) {
+    setError(err.message || "Network error");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen bg-gray-950 text-white px-6">
