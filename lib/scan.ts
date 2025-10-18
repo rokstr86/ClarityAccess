@@ -1,5 +1,5 @@
 // lib/scan.ts
-import puppeteer from "puppeteer";
+import { chromium } from "playwright-chromium";
 
 export type AxeNode = { html: string; target: string[] };
 export type AxeViolation = {
@@ -20,22 +20,20 @@ export type ScanResult = {
 };
 
 export async function runAccessibilityScan(url: string): Promise<ScanResult> {
-  const browser = await puppeteer.launch({
+  const browser = await chromium.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
-  const page = await browser.newPage();
-  await page.goto(url, { waitUntil: "networkidle2", timeout: 60_000 });
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto(url, { waitUntil: "networkidle", timeout: 60_000 });
 
   // Inject axe-core from a CDN (avoids bundling headaches)
-  await page.addScriptTag({
-    url: "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.8.4/axe.min.js",
-  });
+  await page.addScriptTag({ url: "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.8.4/axe.min.js" });
 
   const results = await page.evaluate(async () => {
-    // @ts-expect-error - axe is attached to window by the script tag above
-    const r = await axe.run(document, {
+    const r = await (window as any).axe.run(document, {
       runOnly: ["wcag2a", "wcag2aa"],
       resultTypes: ["violations", "incomplete", "passes"],
       reporter: "v2",
