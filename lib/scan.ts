@@ -33,8 +33,13 @@ export async function runAccessibilityScan(url: string): Promise<ScanResult> {
   await page.addScriptTag({ url: "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.8.4/axe.min.js" });
 
   const results = await page.evaluate(async () => {
+    interface AxeRunOptions {
+      runOnly?: string[];
+      resultTypes?: string[];
+      reporter?: string;
+    }
     interface AxeWindow extends Window {
-      axe: any;
+      axe: { run: (doc: Document, opts?: AxeRunOptions) => Promise<any> };
     }
     const w = window as unknown as AxeWindow;
     const r = await w.axe.run(document, {
