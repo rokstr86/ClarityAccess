@@ -1,66 +1,51 @@
-// lib/scan.ts
-import { chromium } from "playwright-chromium";
+import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer-core";
 
 export type AxeNode = { html: string; target: string[] };
 export type AxeViolation = {
-  id: string;
-  impact?: "minor" | "moderate" | "serious" | "critical";
-  description: string;
-  help: string;
-  helpUrl: string;
-  nodes: AxeNode[];
+  id: string; impact?: "minor"|"moderate"|"serious"|"critical";
+  description: string; help: string; helpUrl: string; nodes: AxeNode[];
 };
 export type ScanResult = {
-  url: string;
-  score: number;
-  violations: AxeViolation[];
-  passes: number;
-  incomplete: number;
-  timestamp: string;
+  url: string; score: number; violations: AxeViolation[];
+  passes: number; incomplete: number; timestamp: string;
 };
 
 export async function runAccessibilityScan(url: string): Promise<ScanResult> {
-  const browser = await chromium.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
   });
 
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await page.goto(url, { waitUntil: "networkidle", timeout: 60_000 });
+  const page = await browser.newPage();
+  // Pretend to be a normal Chrome
+  await page.setUserAgent(
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118 Safari/537.36"
+  );
 
-  // Inject axe-core from a CDN (avoids bundling headaches)
-  await page.addScriptTag({ url: "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.8.4/axe.min.js" });
+  // Some sites block 'networkidle2' on serverless; use domcontentloaded + timeout
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60_000 });
 
-  const results = await page.evaluate(async () => {
-    interface AxeRunOptions {
-      runOnly?: string[];
-      resultTypes?: string[];
-      reporter?: string;
-    }
-    type AxeResult = {
-      violations: AxeViolation[];
-      passes?: AxeViolation[];
-      incomplete?: AxeViolation[];
-    };
-    interface AxeWindow extends Window {
-      axe: { run: (doc: Document, opts?: AxeRunOptions) => Promise<AxeResult> };
-    }
-    const w = window as unknown as AxeWindow;
-    const r = await w.axe.run(document, {
-      runOnly: ["wcag2a", "wcag2aa"],
-      resultTypes: ["violations", "incomplete", "passes"],
+  // Inject axe
+  await page.addScriptTag({
+    url: "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.8.4/axe.min.js",
+  });
+
+  const results: any = await page.evaluate(async () => {
+    // @ts-expect-error axe injected on window
+    return await axe.run(document, {
+      runOnly: ["wcag2a","wcag2aa"],
+      resultTypes: ["violations","incomplete","passes"],
       reporter: "v2",
     });
-    return r;
   });
 
   await browser.close();
 
-  // Simple score: 100 minus a penalty for each violating node (capped)
-  const vCount = results.violations.reduce(
-    (sum: number, v: AxeViolation) => sum + (v.nodes?.length ?? 0),
-    0
+  const vCount = (results.violations as AxeViolation[]).reduce(
+    (sum, v) => sum + (v.nodes?.length ?? 0), 0
   );
   const penalty = Math.min(80, vCount * 2);
   const score = Math.max(0, 100 - penalty);
