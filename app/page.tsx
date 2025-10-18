@@ -77,7 +77,7 @@ export default function Home() {
           <p className="mb-4">
             Violations: {result.violations?.length ?? 0} · Passes: {result.passes ?? 0} · Incomplete: {result.incomplete ?? 0}
           </p>
-          {result.violations?.length > 0 && (
+          {result.violations && result.violations.length > 0 && (
             <ul className="space-y-2 max-h-64 overflow-y-auto">
               {result.violations?.map((v, i: number) => (
                 <li key={i} className="border border-gray-700 p-3 rounded-lg">
