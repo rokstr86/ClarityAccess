@@ -1,10 +1,28 @@
 "use client";
 import { useState } from "react";
 
+type Violation = {
+  id: string;
+  impact?: string;
+  help: string;
+  helpUrl: string;
+  description: string;
+  nodes?: { html: string; target: string[] }[];
+};
+
+type ScanResult = {
+  url: string;
+  score: number;
+  violations?: Violation[];
+  passes?: number;
+  incomplete?: number;
+  timestamp?: string;
+};
+
 export default function Home() {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleScan = async () => {
@@ -17,10 +35,11 @@ export default function Home() {
     setResult(null);
     try {
       const res = await fetch("/api/scan?url=" + encodeURIComponent(url));
-      const data = await res.json();
+      const data = (await res.json()) as ScanResult;
       setResult(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -60,7 +79,7 @@ export default function Home() {
           </p>
           {result.violations?.length > 0 && (
             <ul className="space-y-2 max-h-64 overflow-y-auto">
-              {result.violations.map((v: any, i: number) => (
+              {result.violations?.map((v, i: number) => (
                 <li key={i} className="border border-gray-700 p-3 rounded-lg">
                   <h3 className="font-semibold text-red-400">{v.help}</h3>
                   <p className="text-gray-400 text-sm">{v.description}</p>
