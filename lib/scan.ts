@@ -34,7 +34,7 @@ export async function runAccessibilityScan(url: string): Promise<ScanResult> {
   });
 
   const results = await page.evaluate(async () => {
-    // @ts-ignore - axe is attached to window by the script tag above
+    // @ts-expect-error - axe is attached to window by the script tag above
     const r = await axe.run(document, {
       runOnly: ["wcag2a", "wcag2aa"],
       resultTypes: ["violations", "incomplete", "passes"],
@@ -47,7 +47,7 @@ export async function runAccessibilityScan(url: string): Promise<ScanResult> {
 
   // Simple score: 100 minus a penalty for each violating node (capped)
   const vCount = results.violations.reduce(
-    (sum: number, v: any) => sum + (v.nodes?.length ?? 0),
+    (sum: number, v: AxeViolation) => sum + (v.nodes?.length ?? 0),
     0
   );
   const penalty = Math.min(80, vCount * 2);
