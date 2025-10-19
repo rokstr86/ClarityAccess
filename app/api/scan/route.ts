@@ -5,12 +5,19 @@ import { runAccessibilityScan } from "@/lib/scan";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const respond = (data: any, status = 200) =>
+/**
+ * Type-safe response helper
+ */
+const respond = (data: object | string, status = 200) =>
   NextResponse.json(
     typeof data === "object" ? data : { message: String(data) },
     { status }
   );
 
+/**
+ * GET /api/scan?url=https://example.com
+ * Runs an accessibility scan on the provided URL
+ */
 export async function GET(req: NextRequest) {
   try {
     let url = (req.nextUrl.searchParams.get("url") || "").trim();
@@ -19,12 +26,17 @@ export async function GET(req: NextRequest) {
 
     const result = await runAccessibilityScan(url);
     return respond(result);
-  } catch (err: any) {
-    console.error("SCAN GET ERROR", err);
-    return respond({ error: err?.message || "Internal error" }, 500);
+  } catch (err) {
+    const error = err as Error;
+    console.error("SCAN GET ERROR", error);
+    return respond({ error: error?.message || "Internal error" }, 500);
   }
 }
 
+/**
+ * POST /api/scan with body { url: "https://example.com" }
+ * Runs an accessibility scan on the provided URL
+ */
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json().catch(() => ({}))) as { url?: string };
@@ -34,8 +46,9 @@ export async function POST(req: NextRequest) {
 
     const result = await runAccessibilityScan(url);
     return respond(result);
-  } catch (err: any) {
-    console.error("SCAN POST ERROR", err);
-    return respond({ error: err?.message || "Internal error" }, 500);
+  } catch (err) {
+    const error = err as Error;
+    console.error("SCAN POST ERROR", error);
+    return respond({ error: error?.message || "Internal error" }, 500);
   }
 }

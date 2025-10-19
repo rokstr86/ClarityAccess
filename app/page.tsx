@@ -1,5 +1,28 @@
 import Link from "next/link";
 
+interface Feature {
+  title: string;
+  description: string;
+}
+
+const features: Feature[] = [
+  {
+    title: "Simple",
+    description: "Paste a URL. Get a prioritized list of fixes with links to documentation.",
+  },
+  { 
+    title: "Fast", 
+    description: "Actionable results in seconds. Great for pre-sales audits and QA checks." 
+  },
+  { 
+    title: "Shareable", 
+    description: "Send results to clients or stakeholders to drive upgrades and retainers." 
+  },
+];
+
+/**
+ * Home page component
+ */
 export default function Home() {
   return (
     <main className="relative">
@@ -16,13 +39,13 @@ export default function Home() {
           <div className="mt-8 flex gap-4">
             <Link
               href="/scan"
-              className="rounded-xl bg-white text-black font-semibold px-6 py-3 hover:opacity-90"
+              className="rounded-xl bg-white text-black font-semibold px-6 py-3 hover:opacity-90 transition-opacity"
             >
               Try it free
             </Link>
             <Link
               href="/pricing"
-              className="rounded-xl border border-slate-700 px-6 py-3 text-slate-200 hover:bg-white/5"
+              className="rounded-xl border border-slate-700 px-6 py-3 text-slate-200 hover:bg-white/5 transition-colors"
             >
               See pricing
             </Link>
@@ -39,18 +62,14 @@ export default function Home() {
       <section className="mx-auto max-w-6xl px-4 sm:px-6 pb-24">
         <h2 className="text-2xl font-bold">Why teams choose ClarityAccess</h2>
         <div className="mt-6 grid md:grid-cols-3 gap-6">
-          {[
-            {
-              t: "Simple",
-              d: "Paste a URL. Get a prioritized list of fixes with links to documentation.",
-            },
-            { t: "Fast", d: "Actionable results in seconds. Great for pre-sales audits and QA checks." },
-            { t: "Shareable", d: "Send results to clients or stakeholders to drive upgrades and retainers." },
-          ].map((c) => (
-            <div key={c.t} className="rounded-2xl border border-slate-800 bg-[#0e131c] p-6">
-              <div className="text-lg font-semibold">{c.t}</div>
-              <p className="mt-2 text-slate-300">{c.d}</p>
-            </div>
+          {features.map((feature) => (
+            <article 
+              key={feature.title} 
+              className="rounded-2xl border border-slate-800 bg-[#0e131c] p-6"
+            >
+              <h3 className="text-lg font-semibold">{feature.title}</h3>
+              <p className="mt-2 text-slate-300">{feature.description}</p>
+            </article>
           ))}
         </div>
       </section>
