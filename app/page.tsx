@@ -22,16 +22,17 @@ export default function Home() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/scan?url=" + encodeURIComponent(u));
+      const res = await fetch("/api/scan?url=" + encodeURIComponent(u), {
+        cache: "no-store",
+      });
       const text = await res.text(); // ← always read raw body first
       setDebug(`status=${res.status}\n${text}`);
 
-      // Try JSON parse *only* if there is a body
       let json: any = null;
       try {
         json = text && text.trim().startsWith("{") ? JSON.parse(text) : null;
       } catch {
-        /* not JSON; will be handled below */
+        /* not JSON */
       }
 
       if (!res.ok) {
