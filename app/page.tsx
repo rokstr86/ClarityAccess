@@ -1,106 +1,133 @@
 "use client";
 import { useState } from "react";
 
-type Violation = {
-  id: string;
-  impact?: string;
-  help: string;
-  helpUrl: string;
-  description: string;
-  nodes?: { html: string; target: string[] }[];
-};
-
-type ScanResult = {
-  url: string;
-  score: number;
-  violations?: Violation[];
-  passes?: number;
-  incomplete?: number;
-  timestamp?: string;
-};
-
 export default function Home() {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ScanResult | null>(null);
+  const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [debug, setDebug] = useState<string>("");
 
   const handleScan = async () => {
-  if (!/^https?:\/\//i.test(url)) {
-    setError("Please enter a valid URL starting with http or https.");
-    return;
-  }
-  setError(null); setLoading(true); setResult(null);
-  try {
-    const res = await fetch("/api/scan?url=" + encodeURIComponent(url));
-    const text = await res.text();
-    let json: any = null;
-    try { json = text ? JSON.parse(text) : null; } catch { /* not json */ }
-
-    if (!res.ok) {
-      setError(json?.error || text || `Request failed (${res.status})`);
+    let u = url.trim();
+    if (/^http:\/\//i.test(u)) u = u.replace(/^http:/i, "https:");
+    if (!/^https?:\/\//i.test(u)) {
+      setError("Please enter a valid URL starting with http(s)://");
       return;
     }
-    setResult(json);
-  } catch (err: any) {
-    setError(err.message || "Network error");
-  } finally {
-    setLoading(false);
-  }
-};
 
+    setError(null);
+    setResult(null);
+    setDebug("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/scan?url=" + encodeURIComponent(u));
+      const text = await res.text(); // ← always read raw body first
+      setDebug(`status=${res.status}\n${text}`);
+
+      // Try JSON parse *only* if there is a body
+      let json: any = null;
+      try {
+        json = text && text.trim().startsWith("{") ? JSON.parse(text) : null;
+      } catch {
+        /* not JSON; will be handled below */
+      }
+
+      if (!res.ok) {
+        setError(json?.error || text || `Request failed (${res.status})`);
+        return;
+      }
+
+      if (!json) {
+        setError("Server returned empty body");
+        return;
+      }
+
+      setResult(json);
+    } catch (e: any) {
+      setError(e?.message || "Network error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-950 text-white px-6">
-      <h1 className="text-4xl font-bold mb-4">AI Accessibility & Compliance Scanner</h1>
-      <p className="text-gray-400 mb-8 text-center max-w-lg">
-        Enter any website URL below to instantly scan for accessibility and WCAG compliance issues.
-      </p>
-      <div className="flex w-full max-w-xl mb-6">
-        <input
-          type="text"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://example.com"
-          className="flex-1 px-4 py-2 rounded-l-lg text-gray-900 outline-none"
-        />
-        <button
-          onClick={handleScan}
-          disabled={loading}
-          className="bg-blue-600 px-6 py-2 rounded-r-lg hover:bg-blue-700 disabled:bg-gray-600"
-        >
-          {loading ? "Scanning..." : "Scan"}
-        </button>
-      </div>
+    <main className="min-h-screen bg-[#0c0f14] text-white px-6 py-24">
+      <div className="max-w-3xl mx-auto text-center">
+        <h1 className="text-4xl md:text-5xl font-extrabold">
+          AI Accessibility & Compliance Scanner
+        </h1>
+        <p className="text-slate-300 mt-4">
+          Enter any website URL below to instantly scan for accessibility and
+          WCAG compliance issues.
+        </p>
 
-      {error && <p className="text-red-500 mb-4">{error}</p>}
+        <div className="mt-8 flex gap-3 max-w-2xl mx-auto">
+          <input
+            className="flex-1 px-4 py-3 rounded-lg text-slate-900 outline-none"
+            placeholder="https://example.com"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+          />
+          <button
+            onClick={handleScan}
+            disabled={loading}
+            className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+          >
+            {loading ? "Scanning…" : "Scan"}
+          </button>
+        </div>
 
-      {result && (
-        <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-full max-w-2xl">
-          <h2 className="text-2xl font-semibold mb-2">Results for {result.url}</h2>
-          <p className="mb-2">Score: <span className="font-bold">{result.score}</span></p>
-          <p className="mb-4">
-            Violations: {result.violations?.length ?? 0} · Passes: {result.passes ?? 0} · Incomplete: {result.incomplete ?? 0}
-          </p>
-          {result.violations && result.violations.length > 0 && (
-            <ul className="space-y-2 max-h-64 overflow-y-auto">
-              {result.violations?.map((v, i: number) => (
-                <li key={i} className="border border-gray-700 p-3 rounded-lg">
-                  <h3 className="font-semibold text-red-400">{v.help}</h3>
-                  <p className="text-gray-400 text-sm">{v.description}</p>
+        {error && <p className="text-red-400 mt-6">{error}</p>}
+
+        {result && (
+          <div className="text-left bg-[#121720] border border-[#1e2736] rounded-xl p-6 mt-8">
+            <div className="flex items-center gap-4">
+              <div className="text-5xl font-extrabold">{result.score}</div>
+              <div className="text-slate-300">
+                <div className="font-semibold break-all">{result.url}</div>
+                <div className="text-sm">
+                  Passes: {result.passes} · Incomplete: {result.incomplete}
+                </div>
+              </div>
+            </div>
+
+            <h2 className="text-xl font-semibold mt-6">Top issues</h2>
+            {result.violations?.length === 0 && (
+              <p className="text-green-400 mt-2">No violations detected 🎉</p>
+            )}
+            <ul className="mt-3 space-y-4">
+              {result.violations?.slice(0, 12).map((v: any) => (
+                <li key={v.id} className="border border-[#1e2736] rounded-lg p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="font-semibold">{v.help}</div>
+                      <div className="text-sm text-slate-400">{v.description}</div>
+                    </div>
+                    <span className="text-xs px-2 py-1 rounded bg-[#0f1420] border border-[#1e2736]">
+                      {v.impact ?? "info"}
+                    </span>
+                  </div>
                   <a
                     href={v.helpUrl}
                     target="_blank"
-                    className="text-blue-400 underline text-sm"
+                    className="text-sm text-blue-400 underline mt-2 inline-block"
                   >
-                    Learn more
+                    How to fix
                   </a>
                 </li>
               ))}
             </ul>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+
+        {debug && (
+          <pre className="mt-8 text-left text-xs text-slate-400 whitespace-pre-wrap bg-black/30 p-4 rounded-lg">
+            {debug}
+          </pre>
+        )}
+      </div>
     </main>
   );
 }
