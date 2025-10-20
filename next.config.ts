@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ["puppeteer-core", "@sparticuz/chromium"],
-  },
-  eslint: { ignoreDuringBuilds: true } // keeps deploys from blocking on lint
+  serverExternalPackages: ["puppeteer-core", "@sparticuz/chromium"],
+  eslint: { ignoreDuringBuilds: false } // Enable lint checks during builds for production quality
 };
 export default nextConfig;

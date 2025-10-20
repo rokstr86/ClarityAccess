@@ -13,7 +13,6 @@ export default function ScanPage() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // On mount, hydrate email + remaining from localStorage
   useEffect(() => {
     if (typeof window === "undefined") return;
     const savedEmail = localStorage.getItem("ca_email");
@@ -21,26 +20,21 @@ export default function ScanPage() {
     setRemaining(getRemainingScans());
   }, []);
 
-  // Called by EmailGate when the user submits an email
   const onEmail = useCallback((e: string) => {
     setEmail(e);
     setRemaining(getRemainingScans());
   }, []);
 
   const handleScan = async () => {
-    // force email capture first
     if (!email) return;
-
-    // enforce free quota
     if (remaining <= 0) {
       setError(
         `Free quota reached. You get ${FREE_SCANS_PER_DAY} scans per day. ` +
-        `Upgrade on the Pricing page for more.`
+          `Upgrade on the Pricing page for more.`
       );
       return;
     }
 
-    // basic URL checks
     let u = url.trim();
     if (/^http:\/\//i.test(u)) u = u.replace(/^http:/i, "https:");
     if (!/^https?:\/\//i.test(u)) {
@@ -56,13 +50,10 @@ export default function ScanPage() {
       const res = await fetch("/api/scan?url=" + encodeURIComponent(u), { cache: "no-store" });
       const text = await res.text();
 
-      // try to parse only if it looks like JSON
       let json: any = null;
       try {
         json = text && text.trim().startsWith("{") ? JSON.parse(text) : null;
-      } catch {
-        // ignore parse errors — handled below
-      }
+      } catch {}
 
       if (!res.ok) {
         setError(json?.error || text || `Request failed (${res.status})`);
@@ -74,8 +65,6 @@ export default function ScanPage() {
       }
 
       setResult(json);
-
-      // only consume a scan on success
       const left = consumeScan();
       setRemaining(left);
     } catch (e: any) {
@@ -87,7 +76,6 @@ export default function ScanPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 sm:px-6 py-16">
-      {/* Email gate overlay */}
       {!email && <EmailGate onDone={onEmail} />}
 
       <div className="flex items-end justify-between gap-4">
@@ -96,7 +84,7 @@ export default function ScanPage() {
           <p className="text-slate-300 mt-2">
             Paste any public URL to get an accessibility snapshot.{" "}
             <span className="text-slate-400">
-              Free: {FREE_SCANS_PER_DAY}/day &middot; Remaining today: {remaining}
+              Free: {FREE_SCANS_PER_DAY}/day · Remaining today: {remaining}
             </span>
           </p>
         </div>
