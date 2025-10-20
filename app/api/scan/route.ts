@@ -4,8 +4,11 @@ import { runAccessibilityScan } from "@/lib/scan";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const respond = (data: any, status = 200) =>
-  NextResponse.json(typeof data === "object" ? data : { message: String(data) }, { status });
+const respond = (data: unknown, status = 200) =>
+  NextResponse.json(
+    typeof data === "object" && data !== null ? data : { message: String(data) },
+    { status }
+  );
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,9 +18,10 @@ export async function GET(req: NextRequest) {
 
     const result = await runAccessibilityScan(url);
     return respond(result);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("SCAN GET ERROR", err);
-    return respond({ error: err?.message || "Internal error" }, 500);
+    const message = err instanceof Error ? err.message : "Internal error";
+    return respond({ error: message }, 500);
   }
 }
 
@@ -30,8 +34,9 @@ export async function POST(req: NextRequest) {
 
     const result = await runAccessibilityScan(url);
     return respond(result);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("SCAN POST ERROR", err);
-    return respond({ error: err?.message || "Internal error" }, 500);
+    const message = err instanceof Error ? err.message : "Internal error";
+    return respond({ error: message }, 500);
   }
 }
