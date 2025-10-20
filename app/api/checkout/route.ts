@@ -4,7 +4,10 @@ import Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, plan } = await req.json();
+    const { email, plan } = (await req.json()) as {
+      email?: string;
+      plan?: "free" | "personal" | "enterprise";
+    };
     if (!plan) return NextResponse.json({ error: "Plan not specified" }, { status: 400 });
 
     const secret = process.env.STRIPE_SECRET_KEY!;
@@ -32,7 +35,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Stripe error" }, { status: 500 });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Stripe error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
